@@ -51,3 +51,34 @@ lzma -dc -S .lz ../initrd.lz | cpio -imvd --no-absolute-filenames
 
 #Do stuff
 find . | cpio --quiet --dereference -o -H newc | lzma -7 > ../initrd.lz
+
+
+##################################
+#Additional code changes from here
+###################################
+
+mksquashfs squashfs-root filesystem.squashfs -e boot
+
+cd ../..
+
+echo "
+define DISKNAME  LiveCD_COI
+define TYPE  binary
+define TYPEbinary  1
+define ARCH  amd64
+define ARCHamd64  1
+define DISKNUM  1
+define DISKNUM1  1
+define TOTALNUM  0
+define TOTALNUM0  1" > README.diskdefines
+
+#base_installable is required for mounting ISO into USB stick
+touch base_installable
+echo "full_cd/single" > cd_type
+echo "LiveCD COI" > info
+echo "http//your-release-notes.com" > release_notes_url
+
+(find . -type f -print0 | xargs -0 md5sum | grep -v "\./md5sum.txt" > md5sum.txt)
+
+#Making Live ISO
+mkisofs -r -V "LiveCD" -cache-inodes -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o ../liveCD_COI.iso .
