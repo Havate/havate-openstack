@@ -2,6 +2,14 @@
 
 cd FinalCD/casper
 unsquashfs filesystem.squashfs
+
+#Copying the pool/, dists/, puppet_openstack_builder/, keys into chroot
+cp -r ../pool/ squashfs-root/local-repo/
+cp -r ../dists/ squashfs-root/local-repo/
+cp -r ../puppet_openstack_builder/ squashfs-root/root/
+mkdir squashfs-root/local-repo/keys/
+cp ../../havate@havate.project-* squashfs-root/local-repo/keys/
+
 cp /etc/resolv.conf squashfs-root/etc/
 cp /etc/hosts squashfs-root/etc/
 mount --bind /dev/ squashfs-root/dev
@@ -14,12 +22,15 @@ export LC_ALL=C
 dbus-uuidgen > /var/lib/dbus/machine-id
 dpkg-divert --local --rename --add /sbin/initctl
 ln -s /bin/true /sbin/initctl
-echo 'deb http://localhost/ubuntu precise main' > /etc/apt/sources.list
-apt-get install ubuntu-archive-keyring -y
-apt-get install cobbler puppet git -y --force-yes
 
-git clone https://github.com/CiscoSystems/puppet_openstack_builder -b havana /root/puppet_openstack_builder
-cd /root/puppet_openstack_builder/install-scritps
+#Configuring and Authenticating Local Repository
+echo 'deb file:/local-repo precise main' > /etc/apt/sources.list
+cat /local-repo/keys/havate\@havate.project-public-key | apt-key add -
+apt-get update
+
+apt-get install cobbler puppet git -y
+
+cd /root/puppet_openstack_builder/install-scripts
 ./install.sh
 
 apt-get clean
@@ -35,6 +46,7 @@ umount /sys
 umount /dev/pts
 exit
 EOF
+
 umount squashfs-root/dev
 chmod +w filesystem.manifest
 chroot squashfs-root dpkg-query -W --showformat='${Package} ${Version}\n' > filesystem.manifest
@@ -53,14 +65,11 @@ lzma -dc -S .lz ../initrd.lz | cpio -imvd --no-absolute-filenames
 find . | cpio --quiet --dereference -o -H newc | lzma -7 > ../initrd.lz
 
 
-##################################
-#Additional code changes from here
-###################################
-
 mksquashfs squashfs-root filesystem.squashfs -e boot
 
 cd ../..
 
+#Create diskdefines
 echo "
 define DISKNAME  LiveCD_COI
 define TYPE  binary
