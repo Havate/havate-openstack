@@ -60,7 +60,6 @@ if __name__ == '__main__':
 		logging.debug('retrieve existing inventory and start listener')
 		ucsConsumer.retrieveUcsConfig(app_name, ucsmHost)
 		ucsConsumer.startListener(ucsmHost, app_name, cobbler_user, cobbler_password)
-		#ucsConsumer.startListener(ucsmHost, app_name)
 	pass
 
 pass
