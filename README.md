@@ -21,7 +21,7 @@ The system assumes:
 
 Other networks may also be valid (for example for VLAN based tenant networks).
 
-3) a host onto which the ISO can be built, and which may also be used to connect with the UCSM environment to configure it (this may also be a separate machine onto which the newly created ISO is deployed).
+3) a host or VM in which the ISO can be built, and which may also be used to connect with the UCSM environment to configure it (this may also be a separate machine onto which the newly created ISO is deployed).
 
 Basic Steps
 ===========
