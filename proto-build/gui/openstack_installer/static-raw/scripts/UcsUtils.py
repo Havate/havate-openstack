@@ -15,7 +15,6 @@ from jinja2 import Template, Environment, FileSystemLoader
 class AppName:
         OPENSTACK = "openstack"
         COBBLER = "cobbler"
-        CLOUDSTACK = "cloudstack"
 pass
 
 class UcsmHost:
@@ -28,16 +27,11 @@ class UcsmHost:
         pass
 pass
 
-
-
 # function returns Rn for ServiceProfile instances.
 def getRn(dn):
         return dn[dn.rfind("ls-")+3:]
 pass
 
-
-###############################################################################################
-# Helper functions can be moved to sepratate file
 
 #
 def addObjectToUcs(inUcsmHost, pDn, pClassId, classId, pList, inDn):
@@ -223,8 +217,6 @@ def getNodeType(inHostName):
 pass
 
 
-###############################################################################################
-# Helper functions can be moved to separate file.
 # Add server-ports to system
 def createServerPort(inUcsmHost, portsListStr):
         """Configure server-port in UCS Manager."""
@@ -378,13 +370,6 @@ def createServerPool(inUcsmHost, serverPoolStr):
 
         # Create/Server Pool
         addObjectToUcs(inUcsmHost, pDn, OrgOrg.ClassId(), ComputePool.ClassId(), poolList, serverPoolDn)
-
-#       dn = serverPoolDn + "/blade-" + serverPoolList[ComputePooledSlot.CHASSIS_ID] +"-" +serverPoolList[ComputePooledSlot.SLOT_ID]
-#       computePooledSlotList = {ComputePooledSlot.CHASSIS_ID: serverPoolList[ComputePooledSlot.CHASSIS_ID], \
-#                                ComputePooledSlot.SLOT_ID: serverPoolList[ComputePooledSlot.SLOT_ID]}
-
-        # Add server to the pool created above
-#       addObjectToUcs(inUcsmHost, serverPoolDn, ComputePool.ClassId(), ComputePooledSlot.ClassId(), computePooledSlotList)
 pass
 
 
@@ -447,10 +432,7 @@ def createComputePoolingPolicy(inUcsmHost, computePoolingPolicyStr):
         logging.debug('creating compute-pooling-policy')
         computePoolingPolicyList = ast.literal_eval(computePoolingPolicyStr)
 
-#       print computePoolingPolicyList[ComputePoolingPolicy.NAME], computePoolingPolicyList[ComputePoolingPolicy.QUALIFIER]
-#       print computePoolingPolicyList[ComputePoolingPolicy.POOL_DN]
-
-        pDn = "org-root" # ??
+        pDn = "org-root" # make this configurable?
         computePoolingPolicyDn = pDn + "/pooling-policy-" + computePoolingPolicyList[ComputePoolingPolicy.NAME]
 
         # Add Mo to UCS Manager
@@ -463,7 +445,7 @@ def createComputeScrubPolicy(inUcsmHost, computeScrubgPolicyStr):
         logging.debug('create compute-scrub-policy')
         computeScrubPolicyList = ast.literal_eval(computeScrubgPolicyStr)
 
-        pDn = "org-root" # ??
+        pDn = "org-root"
         computeScrubgPolicyDn = pDn + "/scrub-" + computeScrubPolicyList[ComputeScrubPolicy.NAME]
 
         # Add Mo to UCS Manager
@@ -471,7 +453,7 @@ def createComputeScrubPolicy(inUcsmHost, computeScrubgPolicyStr):
 pass
 
 
-# Vlan { 'Name':'vlan106', 'SwitchId':'dual', 'Id': '106', 'Sharing':'none', 'DefaultNet':'yes'}
+# create VLAN instance 
 def createVlan(inUcsmHost, fabricVlanStr):
         """ Configures VLAN in UCS Manager. """
         logging.debug('create vlan')
@@ -504,6 +486,7 @@ def createVlan(inUcsmHost, fabricVlanStr):
 	pass
 pass
 
+# creates service profile instances.
 def createSPInstance(inUcsmHost, lsServerInstancesStr):
 	"""Creates N number of service profiles instantiating from SrcTempl."""
 	logging.debug('creating SP Instances')
@@ -543,7 +526,7 @@ def createOrgOrg(inUcsmHost, orgOrgStr):
 pass
 
 
-#UplinkPort {'SwitchId':'A', 'SlotId':'1', 'PortId':'8', 'AdminSpeed':'1gbps'}
+# create uplink
 def createUplink(inUcsmHost, fabricEthLanEpStr):
         """Configures uplink port in UCS Manager."""
         logging.debug('create uplink')
@@ -556,7 +539,7 @@ def createUplink(inUcsmHost, fabricEthLanEpStr):
         addObjectToUcs(inUcsmHost, pDn, FabricEthLan.ClassId(), FabricEthLanEp.ClassId(), fabricEthLanEpList, fabricEthLanEpDn)
 pass
 
-#LsRequirement {'SrcTemplDn':'org-root/ls-control-node', 'Name':'control-node'}
+# configures server-pool requirement for SP.
 def createLsRequirement(inUcsmHost, lsRequirementStr):
         """Configures ServerPool for ServiceProfile Template in UCS Manager."""
         logging.debug('create LsRequirement')
@@ -578,15 +561,6 @@ def createStorageLocalDiskConfigPolicy(inUcsmHost, storageLocalDiskConfigPolicyS
 	"""Configures the LocalDiskConfiguration Policies."""
 	logging.debug('create StorageLocalDiskConfigPolicy')
 	storageLocalDiskConfigPolicyList = ast.literal_eval(storageLocalDiskConfigPolicyStr)
-#
-#	storageLocalDiskConfigPolicyListRes = {
-#						StorageLocalDiskConfigPolicy.NAME: storageLocalDiskConfigPolicyList[StorageLocalDiskConfigPolicy.NAME],
-#						StorageLocalDiskConfigPolicy.MODE: storageLocalDiskConfigPolicyList[StorageLocalDiskConfigPolicy.MODE],
-#						StorageLocalDiskConfigPolicy.PROTECT_CONFIG: storageLocalDiskConfigPolicyList[StorageLocalDiskConfigPolicy.PROTECT_CONFIG],
-#						StorageLocalDiskConfigPolicy.FLEX_FLASH_RAID_Reporting_STATE: storageLocalDiskConfigPolicyList[StorageLocalDiskConfigPolicy.FLEX_FLASH_RAID_Reporting_STATE],
-#						StorageLocalDiskConfigPolicy.FLEX_FLASH_STATE: storageLocalDiskConfigPolicyList[StorageLocalDiskConfigPolicy.FLEX_FLASH_STATE]
-#						}
-
 	pDn = 'org-root'
 	storageLocalDiskConfigPolicyDn  = pDn + "/local-disk-config-" + storageLocalDiskConfigPolicyList[StorageLocalDiskConfigPolicy.NAME]
 

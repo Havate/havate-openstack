@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# Commented out for lack of use.
-# import os
 import sys
 import yaml
 import traceback

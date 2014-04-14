@@ -32,7 +32,7 @@ if __name__ == '__main__':
         parser.add_argument('-r', '--ip-range', dest='ip_range', help='ip-address range.')
         parser.add_argument('-s', '--cobbler_user', dest='cobbler_user', help='Username to login to Cobbler', default="")
         parser.add_argument('-w', '--cobbler_password', dest='cobbler_password', help='Password to login to Cobbler', default="")
-                                #choices = [AppName.OPENSTACK, AppName.COBBLER, AppName.CLOUDSTACK], default=False)
+
         args = parser.parse_args()
         ucsm_conf_templ = args.conf_templ
         ucsm_conf_templ = args.conf_templ

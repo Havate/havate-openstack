@@ -6,7 +6,9 @@ import yaml
 
 
 cobbler_server='127.0.0.1'
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+cobbler_user = 'cobbler'
+cobbler_password = ''
+
 # check if the profile exists already.
 def isProfileExists(profileName):
         logging.debug('isProfileExists - ' + profileName)
@@ -19,11 +21,10 @@ def isProfileExists(profileName):
         return False
 pass
 
+# Write node info to cobbler.yaml file. Which later processed by cobbler.
 def addSystemInCobblerConfFile(in_name, in_power_address, in_mac1, in_ip):
 
 	logging.debug('In addSystemInCobblerConfFile')
-	#cobbler_node = {in_name}
-	#cobbler_node = {''}
 	cobbler_node = {'hostname' : in_name,
         		'power_address' : in_power_address,
 			'interfaces' : {'eth0' : { 'mac-address' : in_mac1,
@@ -33,7 +34,6 @@ def addSystemInCobblerConfFile(in_name, in_power_address, in_mac1, in_ip):
 						 }
 					}
 			}
-#	cobbler_node[in_name]['interfaces']['eth0'] = interface
 
 	cobbler_nodes_file_name = "/etc/puppet/data/cobbler/cobbler.yaml"
 	logging.debug('cobbler_nodes_file_name')
@@ -62,10 +62,8 @@ pass
 # This function is to add a system to the given profile
 def addSystem(name, profile_name, mac_address, ip_address):
         try:
-		cobbler_user = 'cobbler'
-		cobbler_password = ''
                 logging.debug('addSystem name:%s profile:%s mac:%s ' % (name, profile_name, mac_address))
-                cobbler_handle = xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")#"+cobbler_server+"/cobbler_api")
+                cobbler_handle = xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
                 ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
                 system_id = cobbler_handle.new_system(ltoken)
                 cobbler_handle.modify_system(system_id, "name", name, ltoken)
@@ -86,7 +84,7 @@ def addSystem(name, profile_name, mac_address, ip_address):
 pass
 
 
-#this function is to add a system to the given profile
+# This function is to update system info in cobbler db
 def updateSystem(name, profile_name, mac_address, ip_address):
         cobbler_handle =  xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
         ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
@@ -103,12 +101,12 @@ def updateSystem(name, profile_name, mac_address, ip_address):
 pass
 
 
-# This function is to add a system to the given profile
+# This function is to remove host from cobbler db
 def removeHost(name):
         try:
                 logging.debug('removeHost name:%s ' % name)
-                cobbler_handle = xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")#"+cobbler_server+"/cobbler_api")
-                ltoken = cobbler_handle.login("os", "Nuova123")
+                cobbler_handle = xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
+                ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
                 cobbler_handle.remove_system(name, ltoken)
                 cobbler_handle.sync(ltoken)
                 logging.debug('Removed system from %s' %  app_name)
@@ -117,6 +115,3 @@ def removeHost(name):
         pass
 pass
 
-
-
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$

@@ -240,7 +240,7 @@ class Openstack(ServiceProfileConsumer):
 
         def update_node(self, in_pn_dn, in_ls_name, in_power_ip, in_power_address, in_power_id, in_power_admin, in_power_password, in_power_type, in_mac1, in_mac2 = None):
 
-		#make sure the ip-address mapping is present.
+		# make sure the ip-address mapping is present.
 		site_file = open('/etc/puppet/manifests/iplist.yaml', 'r')
 		yaml_site_file = yaml.safe_load(site_file)
 		site_file.close()
@@ -362,7 +362,6 @@ class Openstack(ServiceProfileConsumer):
 			role_mappings_file = open("/etc/puppet/data/role_mappings.yaml", 'w')
 			yaml.safe_dump(yaml_role_mappings, role_mappings_file, default_flow_style=False)
 			role_mappings_file.close()
-			#self.updateSiteFile()
 
 			# Need to remove the entry in cobbler
 	                logging.debug('Removing Host from cobbler %s' % serverName)
@@ -374,14 +373,6 @@ class Openstack(ServiceProfileConsumer):
         pass
 pass
 
-
-class Cloudstack(ServiceProfileConsumer):
-        pass
-
-class Hadoop(ServiceProfileConsumer):
-        pass
-
-
 class ServiceProfileConsumerFactory(object):
         consumers = {'openstack':Openstack, 'cobbler':Cobbler, 'cloudstack':Cloudstack, 'hadoop':Hadoop}
 
@@ -392,10 +383,9 @@ class ServiceProfileConsumerFactory(object):
 pass
 
 
-#
+# Retrieve UCS service-profile inventory.
 def getUcsConfig(inAppName, inUcsmHost):
         try:
-                #logging.debug('HostName'+inUcsmHost.hostname + " username:"+ inUcsmHost.username + " password:"+ inUcsmHost.password)
                 handle = UcsHandle()
                 login = handle.Login(inUcsmHost.hostname, inUcsmHost.username, inUcsmHost.password)
                 if login == False:
@@ -416,12 +406,10 @@ def getUcsConfig(inAppName, inUcsmHost):
 pass
 
 
-#
+# Add node to openstack if entry present in iplist.yaml.
 def updateHostInApp(inDn, inUcsmHost):
         try:
-                #logging.debug("In updateHostInApp"+ inUcsmHost.hostname + inUcsmHost.username + inUcsmHost.password)
                 handle = UcsHandle()
-#                login = handle.Login(ucsmHost.hostname, ucsmHost.username, ucsmHost.password)
                 login = handle.Login(inUcsmHost.hostname, inUcsmHost.username, inUcsmHost.password)
                 if login == False:
                         logging.debug('Login Failed')
@@ -442,7 +430,7 @@ def updateHostInApp(inDn, inUcsmHost):
 pass
 
 
-#
+# Retrives blade info associated with sesrvice-profile
 def addUcsServer(handle, inUcsmHost, inDn, lsServer, inAppName):
         """ Get the ComputeBlades information, adds to Openstack
             If the boot order has LAN boot enabled.
@@ -472,7 +460,7 @@ pass
 
 
 
-#
+# Adding node to specific integration application.
 def addHostToApp(inUcsmHost, inHostName, inIpAddr, inMacAddr, inLsServer, inAppName):
         """ Adds system to respective Application.
         """
@@ -480,24 +468,6 @@ def addHostToApp(inUcsmHost, inHostName, inIpAddr, inMacAddr, inLsServer, inAppN
         consumer = ServiceProfileConsumerFactory(inAppName)
         consumer.addHost(inUcsmHost, inHostName, inMacAddr, inIpAddr, inLsServer)
 pass
-
-def getHostNamePrefix(inLsServer, inUcsmHost):
-	specialChars = ['\'', '.', '!', '#', '$', '@', '%', '^', '&', '(', ')','*',';',':', '_']
-
-        logging.debug("hostname:" + inUcsmHost.hostname + "  afterReplace:"+ re.sub('[%s]' % ''.join(specialChars), '-', inUcsmHost.hostname))
-        
-	return  getRn(inLsServer.getattr(LsServer.OPER_SRC_TEMPL_NAME)) + "-" + re.sub('[%s]' % ''.join(specialChars), '-', inUcsmHost.hostname)
-
-pass
-
-#
-def getHostNameFromIPList(inLsServerName):
-	if inLsServerName in iplist.keys():
-		return iplist[inLsServerName]['name']
-	pass
-	return 
-pass		
-	
 
 # This function is add the system to cobbler
 def addHost(connHandle, inUcsmHost, lsbootDef, inCompServer, inLsServer, inAppName):
@@ -510,8 +480,6 @@ def addHost(connHandle, inUcsmHost, lsbootDef, inCompServer, inLsServer, inAppNa
                                 if ((imagePath != 0)):
                                         vnicEther = getVnicEther(connHandle, imagePath.getattr("VnicName"), inLsServer)
                                         if (vnicEther != 0):
-                                                #hostname = getHostNameFromIPList(inLsServer.getattr(LsServer.NAME)) # getHostNamePrefix(inLsServer, inUcsmHost) + "-" + inLsServer.getattr(LsServer.NAME)
-						#logging.debug("hostname:" + hostname)
 						iplist_file = open('/etc/puppet/manifests/iplist.yaml', 'r')
 						yaml_iplist = yaml.safe_load(iplist_file)
 						iplist_file.close()
@@ -533,5 +501,4 @@ def addHost(connHandle, inUcsmHost, lsbootDef, inCompServer, inLsServer, inAppNa
                 pass
         pass
 pass
-
 

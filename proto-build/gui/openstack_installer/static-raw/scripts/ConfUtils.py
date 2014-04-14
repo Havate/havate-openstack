@@ -2,7 +2,6 @@ from UcsSdk import *
 import logging
 from UcsUtils import *
 
-###############################################################################################
 #cobbler specific configuration variables
 cobbler_server=''
 cobbler_user=''
