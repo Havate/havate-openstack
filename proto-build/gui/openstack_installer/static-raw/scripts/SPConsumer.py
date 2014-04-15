@@ -23,7 +23,7 @@ def callback_lsServer(mce):
         try:
                 ucsmHost = UcsmHost(os.environ['UCS_HOSTNAME'], os.environ['UCS_USER'], os.environ['UCS_PASSWORD'], "", YesOrNo.FALSE)
         except Exception, err:
-                logging.debug('EException' + str(err))
+                logging.debug('Exception' + str(err))
         pass
 
         # If the service-profile is removed/deleted, delete system from openstck cluster
@@ -32,7 +32,7 @@ def callback_lsServer(mce):
                         consumer = ServiceProfileConsumerFactory(os.environ['APP_NAME'])
                         consumer.removeHost(getRn(mce.mo.getattr("Dn")))
                 except Exception, err:
-                        logging.debug('6Exception: ' + str(err))
+                        logging.debug('Exception: ' + str(err))
                 pass
                 logging.debug('Removed system')
         pass
@@ -46,7 +46,7 @@ def callback_lsServer(mce):
                         consumer.updateHost(mce.mo.getattr("Dn"), ucsmHost)
                         logging.debug("Added System to - %s" % (os.environ['APP_NAME']) )
                 except Exception, err:
-                        logging.debug('7Exception: ' + str(err))
+                        logging.debug('Exception: ' + str(err))
                 pass
         pass
         logging.debug('end of event')
@@ -91,7 +91,7 @@ class ServiceProfileConsumer(object):
                         time.sleep(60000)
                         logging.debug('after timer')
                 except Exception, err:
-                        logging.debug('8Exception:' + str(err))
+                        logging.debug('Exception:' + str(err))
                         import traceback, sys
                         logging.debug('-'*60)
                         traceback.print_exc(file=sys.stdout)
@@ -374,7 +374,7 @@ class Openstack(ServiceProfileConsumer):
 pass
 
 class ServiceProfileConsumerFactory(object):
-        consumers = {'openstack':Openstack, 'cobbler':Cobbler, 'cloudstack':Cloudstack, 'hadoop':Hadoop}
+        consumers = {'openstack':Openstack, 'cobbler':Cobbler}
 
         def __new__(klass, consumer):
                 logging.debug("creating new consumer-%s"%consumer)
@@ -401,7 +401,7 @@ def getUcsConfig(inAppName, inUcsmHost):
                         addUcsServer(handle, inUcsmHost, lsServer.getattr(LsServer.DN), lsServer, inAppName)
                 pass
         except Exception, err:
-                logging.debug('2Exception:' + str(err))
+                logging.debug('Exception:' + str(err))
         pass
 pass
 
@@ -425,7 +425,7 @@ def updateHostInApp(inDn, inUcsmHost):
                 pass
                 handle.Logout()
         except Exception, err:
-                logging.debug('3Exception:' + str(err))
+                logging.debug('Exception:' + str(err))
         pass
 pass
 
@@ -435,28 +435,49 @@ def addUcsServer(handle, inUcsmHost, inDn, lsServer, inAppName):
         """ Get the ComputeBlades information, adds to Openstack
             If the boot order has LAN boot enabled.
         """
-        logging.debug('In addUcsServer')
-        inFilter = FilterFilter()
-        eqFilter = EqFilter()
-        eqFilter.Class = "computeBlade"
-        eqFilter.Property = "assignedToDn"
-        eqFilter.Value = inDn
-        inFilter.AddChild(eqFilter)
-        computeBlades = handle.ConfigResolveClass(ComputeBlade.ClassId(), inFilter, inHierarchical=YesOrNo.FALSE, dumpXml = False)
-        if (computeBlades.errorCode == 0):
-                # for each computeBladeMo, get the lsbootDef Info.
-                for blade in computeBlades.OutConfigs.GetChild():
-                        lsbootDef = getLsbootDef(handle, blade)
-                        for bootDef in lsbootDef.OutConfigs.GetChild():
-                                # only one LsbootDef will be present, break once we got that info.
-                                addHost(handle, inUcsmHost, bootDef, blade, lsServer, inAppName)
-                                pass
-                        pass
-                pass
-        pass
+
+	if inDn.startswith('sys/chassis-'):
+	        logging.debug('In addUcsServer')
+	        inFilter = FilterFilter()
+	        eqFilter = EqFilter()
+	        eqFilter.Class = "computeBlade"
+	        eqFilter.Property = "assignedToDn"
+	        eqFilter.Value = inDn
+	        inFilter.AddChild(eqFilter)
+        	computeBlades = handle.ConfigResolveClass(ComputeBlade.ClassId(), inFilter, inHierarchical=YesOrNo.FALSE, dumpXml = False)
+	        if (computeBlades.errorCode == 0):
+			# for each computeBladeMo, get the lsbootDef Info.
+	                for blade in computeBlades.OutConfigs.GetChild():
+        	                lsbootDef = getLsbootDef(handle, blade)
+                	        for bootDef in lsbootDef.OutConfigs.GetChild():
+                        	        # only one LsbootDef will be present, break once we got that info.
+                                	addHost(handle, inUcsmHost, bootDef, blade, lsServer, inAppName)
+	                                pass
+        	                pass
+                	pass
+	        pass
+	elif inDn.startswith('sys/rackunit-'):
+		inFilter = FilterFilter()
+		eqFilter = EqFilter()
+		eqFilter.Class = "computeRackUnit"
+		eqFilter.Property = "assignedToDn"
+		eqFilter.Value = inDn
+		inFilter.AddChild(eqFilter)
+		computeRackUnits = handle.ConfigResolveClass(ComputeRackUnit.ClassId(), inFilter, inHierarchical=YesOrNo.FALSE, dumpXml = False)
+		if (computeRackUnits.errorCode == 0):
+			# for each computeackUnitMo the lsbootDef Info.
+			for blade in computeRackUnits.OutConfigs.GetChild():
+				lsbootDef = getLsbootDef(handle, blade)
+				for bootDef in lsbootDef.OutConfigs.GetChild():
+					# only one LsbootDef will be present, break once we got that info.
+					addHost(handle, inUcsmHost, bootDef, blade, lsServer, inAppName)
+				pass
+			pass
+		pass
+	else:
+		logging.debug('Invalid Dn: %s.' % inDn)
+	pass
 pass
-
-
 
 
 
