@@ -74,7 +74,5 @@ iplist:
     role: cephosd
 
 noderoles:
-  build:
-  compressed_ha_cephmon:
-  compute:
-  cephosd:
+  aio: precise
+  compute: default
