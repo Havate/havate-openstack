@@ -17,13 +17,13 @@ StorageLocalDiskConfigPolicy { 'Name':'os-compute-nodes', 'Mode':'no-raid', 'Pro
 LsbootPolicy {'Name': 'aio-node', 'Purpose': 'operational', 'RebootOnUpdate':'no', 'EnforceVnicName': 'no', 'vm-ro': {'Type': 'vm', 'Access': 'read-only', 'Order': '1'}, 'lan': {'Type': 'lan', 'Access':'read-only', 'Prot':'pxe', 'Order':'2', 'ImagePath': {'Type': 'primary', 'VnicName': 'eth0'}}, 'storage': {'Type': 'storage', 'Access': 'read-write', 'Order':'3'}, 'vm-rw': {'Type': 'vm', 'Access':'read-write', 'Order':'4'}, 'TargetOrg':'org-root', 'Descr':'Openstack Integration'}
 
 #ServiceProfile Template
-#ServiceProfile {'Name':'aio-node', 'Type':'updating-template', 'BootPolicyName':'aio-node', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'aio-nodes', 'ExtIPPoolName':'aio-nodes-ip', 'LocalDiskPolicyName': 'os-nodes'}
-ServiceProfile {'Name':'aio-node', 'Type':'updating-template', 'BootPolicyName':'aio-node', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'aio-nodes', 'LocalDiskPolicyName': 'os-compute-nodes'}
+#ServiceProfile {'Name':'aio-node', 'Type':'initial-template', 'BootPolicyName':'aio-node', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'aio-nodes', 'ExtIPPoolName':'aio-nodes-ip', 'LocalDiskPolicyName': 'os-nodes'}
+ServiceProfile {'Name':'aio-node', 'Type':'initial-template', 'BootPolicyName':'aio-node', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'aio-nodes', 'LocalDiskPolicyName': 'os-compute-nodes'}
 
-ServiceProfile {'Name':'compute-node', 'Type':'updating-template', 'BootPolicyName':'default', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'compute-nodes', 'ExtIPPoolName':'compute-nodes-ip', 'LocalDiskPolicyName': 'os-compute-nodes'}
+ServiceProfile {'Name':'compute-node', 'Type':'initial-template', 'BootPolicyName':'default', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'compute-nodes', 'ExtIPPoolName':'compute-nodes-ip', 'LocalDiskPolicyName': 'os-compute-nodes'}
 
-#ServiceProfile {'Name':'swift-node', 'Type':'updating-template', 'BootPolicyName':'default', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'swift-nodes', 'ExtIPPoolName':'swift-nodes-ip', 'LocalDiskPolicyName': 'openstack-nodes'}
-#ServiceProfile {'Name':'swiftproxy-node', 'Type':'updating-template', 'BootPolicyName':'default', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'swiftproxy-nodes', 'ExtIPPoolName':'swiftproxy-nodes-ip', 'LocalDiskPolicyName': 'openstack-nodes'}
+ServiceProfile {'Name':'swift-node', 'Type':'initial-template', 'BootPolicyName':'default', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'swift-nodes', 'ExtIPPoolName':'swift-nodes-ip', 'LocalDiskPolicyName': 'openstack-nodes'}
+ServiceProfile {'Name':'swiftproxy-node', 'Type':'initial-template', 'BootPolicyName':'default', 'Uuid':'derived', 'HostFwPolicyName':'default', 'ScrubPolicyName':'swiftproxy-nodes', 'ExtIPPoolName':'swiftproxy-nodes-ip', 'LocalDiskPolicyName': 'openstack-nodes'}
 
 #LsRequirement {'SrcTemplDn':'org-root/ls-aio-node', 'Name':'aio-pool', 'Qualifier':'aio-pool'}
 #LsRequirement {'SrcTemplDn':'org-root/ls-compute-node', 'Name':'compute-pool', 'Qualifier':'compute-pool'}
