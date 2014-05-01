@@ -8,31 +8,36 @@ import yaml
 cobbler_server='127.0.0.1'
 cobbler_user = 'cobbler'
 cobbler_password = ''
+cobbler_profile_name = 'precise-x86_64'
 
 # check if the profile exists already.
-def isProfileExists(profileName):
-        logging.debug('isProfileExists - ' + profileName)
+def isProfileExists(profile_name):
+        logging.debug('isProfileExists - ' + profile_name)
         cobbler_handle = xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
-        is_exists = cobbler_handle.find_profile({"name":profileName})
+        is_exists = cobbler_handle.find_profile({"name": profile_name})
         if (is_exists):
-                logging.debug('[Info] Profile ' + profileName + ' exists')
+                logging.debug('Profile ' + profile_name + ' exists')
                 return True
         pass
         return False
 pass
 
-# Write node info to cobbler.yaml file. Which later processed by cobbler.
-def addSystemInCobblerConfFile(in_name, in_power_address, in_mac1, in_ip):
-
+def addSystemInCobblerConfFile(node):
+	""" Writes the nodes info to cobbler.yaml file."""
 	logging.debug('In addSystemInCobblerConfFile')
-	cobbler_node = {'hostname' : in_name,
-        		'power_address' : in_power_address,
-			'interfaces' : {'eth0' : { 'mac-address' : in_mac1,
-						  'dns-name' : in_name,
-						  'ip-address' : in_ip,
-						  'static' : "0" 
-						 }
-					}
+	interfaces = {}
+	for if_id in xrange(0, len(node['interfaces'])):
+		interface = {}
+		interface.update({'mac-address': node['interfaces']['eth' + str(if_id)]['mac']})
+		interface.update({'dns-name': node['interfaces']['eth' + str(if_id)]['dnsname']})
+		interface.update({'ip-address': node['interfaces']['eth' + str(if_id)]['ip']})
+		interface.update({'static': '0'})
+		interfaces.update({'eth%d' % if_id: interface})
+	pass
+
+	cobbler_node = {'hostname' : node['name'],
+        		'power_address' : node['power_address'],
+			'interfaces' : interfaces 
 			}
 
 	cobbler_nodes_file_name = "/etc/puppet/data/cobbler/cobbler.yaml"
@@ -41,77 +46,115 @@ def addSystemInCobblerConfFile(in_name, in_power_address, in_mac1, in_ip):
 	yaml_cobbler_nodes = yaml.safe_load(cobbler_nodes_file)
 	cobbler_nodes_file.close()
 
-	if yaml_cobbler_nodes and yaml_cobbler_nodes.keys() and in_name in yaml_cobbler_nodes.keys():
-		logging.debug('Node:%s entry already exists, just update the entry' % (in_name))
-		yaml_cobbler_nodes[in_name] = cobbler_node
-	else:
-		yaml_cobbler_nodes[in_name] = cobbler_node
-		logging.debug('Node:%s entry does not exists in cobbler.yaml, update cobbler.yaml' % (in_name))
+	if yaml_cobbler_nodes and yaml_cobbler_nodes.keys():
+		yaml_cobbler_nodes[node['name']] = cobbler_node
+		logging.debug('Node:%s added/updated in cobbler.yaml' % (node['name']))
 	pass
 
 	# Write the changes to role_mappings file
 	cobbler_nodes_file = open(cobbler_nodes_file_name, 'w')
 	yaml.safe_dump(yaml_cobbler_nodes, cobbler_nodes_file, default_flow_style=False)
 	cobbler_nodes_file.close()
-
-
 pass
 
 
 
 # This function is to add a system to the given profile
-def addSystem(name, profile_name, mac_address, ip_address):
+def addSystem(node):
         try:
-                logging.debug('addSystem name:%s profile:%s mac:%s ' % (name, profile_name, mac_address))
+                logging.debug('addSystem name:%s profile:%s:' % (node['name'], cobbler_profile_name))
                 cobbler_handle = xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
                 ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
-                system_id = cobbler_handle.new_system(ltoken)
-                cobbler_handle.modify_system(system_id, "name", name, ltoken)
-                cobbler_handle.modify_system(system_id,'modify_interface', {
-                        "macaddress-eth0"   : mac_address,
-                        "ipaddress-eth0"   : ip_address,
-                        "dnsname-eth0"      : name,
-                        }, ltoken)
-                cobbler_handle.modify_system(system_id, 'kickstart', "/etc/cobbler/preseed/cisco-preseed.iso", ltoken);      
-                cobbler_handle.modify_system(system_id, "profile", profile_name, ltoken)
-
-                cobbler_handle.save_system(system_id, ltoken)
-                cobbler_handle.sync(ltoken)
-                logging.debug('Added/Updated system in cobbler')
+       	        system_id = cobbler_handle.new_system(ltoken)
+               	cobbler_handle.modify_system(system_id, "name", node['name'], ltoken)
+		for if_id in xrange(0, len(node['interfaces'])):
+			interface = {}
+			interface.update({'macaddress-eth%d' % (if_id): node['interfaces']['eth' + str(if_id)]['mac']})
+			interface.update({'ipaddress-eth%d' % (if_id): node['interfaces']['eth' + str(if_id)]['ip']})
+			interface.update({'dnsaddress-eth%d' % (if_id): node['interfaces']['eth' + str(if_id)]['dnsname']})
+	                cobbler_handle.modify_system(system_id,'modify_interface', interface, ltoken)
+		pass
+		cobbler_handle.modify_system(system_id, 'kickstart', "/etc/cobbler/preseed/cisco-preseed", ltoken);
+		cobbler_handle.modify_system(system_id, "profile", cobbler_profile_name, ltoken)
+               	cobbler_handle.save_system(system_id, ltoken)
+		cobbler_handle.sync(ltoken)
+                logging.debug('Added system in cobbler')
         except Exception, err:
-                logging.debug("4Exception:" + str(err))
+                logging.debug("Exception:" + str(err))
+                import traceback, sys
+                logging.error('-'*60)
+                traceback.print_exc(file=sys.stdout)
+                logging.error('-'*60)
         pass
 pass
 
 
-# This function is to update system info in cobbler db
-def updateSystem(name, profile_name, mac_address, ip_address):
-        cobbler_handle =  xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
-        ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
-        system_id = cobbler_handle.new_system(ltoken)
-        cobbler_server_conn.modify_system(system_id, "name", name, ltoken)
-        cobbler_server_conn.modify_system(system_id,'modify_interface', {
-                "macaddress-eth1"   : mac_address,
-                "dnsname-eth1"      : name,
-                }, ltoken)
-        cobbler_server_conn.modify_system(system_id, "profile", profile_name, ltoken)
-
-        cobbler_server_conn.save_system(system_id, ltoken)
-        cobbler_server_conn.sync(ltoken)
+#this function is to add a system to the given profile
+def updateSystem(node):
+	try:
+	        cobbler_handle =  xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
+	        ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
+	        system_id = cobbler_handle.new_system(ltoken)
+       	 	cobbler_server_conn.modify_system(system_id, "name", node['name'], ltoken)
+		for if_id in xrange(0, xrange(node['interfaces'])):
+			interface = {}
+                        interface.update({'macaddress-eth%d' % (if_id): node['interfaces']['eth' + str(if_id)]['mac']})
+                        interface.update({'ipaddress-eth%d' % (if_id): node['interfaces']['eth' + str(if_id)]['ip']})
+                        interface.update({'dnsaddress-eth%d' % (if_id): node['interfaces']['eth' + str(if_id)]['dnsname']})
+		        cobbler_server_conn.modify_system(system_id,'modify_interface', interface, ltoken)
+		pass
+       	 	cobbler_server_conn.modify_system(system_id, "profile", cobbler_profile_name, ltoken)
+	        cobbler_server_conn.save_system(system_id, ltoken)
+       		cobbler_server_conn.sync(ltoken)
+	except Exception, err:
+		logging.debug('Exception' + str(err))
+                import traceback, sys
+                logging.error('-'*60)
+                traceback.print_exc(file=sys.stdout)
+                logging.error('-'*60)
+	pass
 pass
 
-
-# This function is to remove host from cobbler db
+def is_system_exist(name):
+	try:
+		logging.debug('is_system_exist:%s' % (name))
+		cobbler_handle = xmlrpclib.Server("http://" + cobbler_server +"/cobbler_api")
+		ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
+		sys = cobbler_handle.find_system({'name': name}) 
+		if sys:
+			logging.debug('is_system_exist: True')
+			return True
+		else:
+			logging.debug('is_system_exist: False')
+			return False
+		pass
+	except Exception, err:
+                logging.debug("Exception:" + str(err))
+                import traceback, sys
+                logging.error('-'*60)
+                traceback.print_exc(file=sys.stdout)
+                logging.error('-'*60)
+        pass
+pass
+	
+# This function is to add a system to the given profile
 def removeHost(name):
         try:
-                logging.debug('removeHost name:%s ' % name)
+                logging.debug('removeHost name:%s' % name)
                 cobbler_handle = xmlrpclib.Server("http://"+cobbler_server+"/cobbler_api")
                 ltoken = cobbler_handle.login(cobbler_user, cobbler_password)
-                cobbler_handle.remove_system(name, ltoken)
-                cobbler_handle.sync(ltoken)
-                logging.debug('Removed system from %s' %  app_name)
+		if is_system_exist(name):
+	                cobbler_handle.remove_system(name, ltoken)
+        	        cobbler_handle.sync(ltoken)
+                	logging.debug('Removed system:%s from openstack' % (name))
+		else:
+			logging.debug('system:%s does not exist in cobbler' % (name))
+		pass
         except Exception, err:
-                logging.debug("5Exception:" + str(err))
+                logging.debug("Exception:" + str(err))
+                import traceback, sys
+                logging.error('-'*60)
+                traceback.print_exc(file=sys.stdout)
+                logging.error('-'*60)
         pass
 pass
-

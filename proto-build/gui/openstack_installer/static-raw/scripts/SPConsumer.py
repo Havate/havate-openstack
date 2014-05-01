@@ -13,6 +13,10 @@ from UcsUtils import *
 from ConfUtils import *
 from CobblerUtils import *
 
+def get_quote_string(in_str):
+	return "%s%s%s" % ('"', in_str, '"')
+pass
+
 def callback_lsServer(mce):
         """ Event listener callback function. This checks for the event type and
             updates the nodes in Openstack cluster nodes list. Also applies the
@@ -23,7 +27,7 @@ def callback_lsServer(mce):
         try:
                 ucsmHost = UcsmHost(os.environ['UCS_HOSTNAME'], os.environ['UCS_USER'], os.environ['UCS_PASSWORD'], "", YesOrNo.FALSE)
         except Exception, err:
-                logging.debug('Exception' + str(err))
+                logging.debug('EException' + str(err))
         pass
 
         # If the service-profile is removed/deleted, delete system from openstck cluster
@@ -32,7 +36,7 @@ def callback_lsServer(mce):
                         consumer = ServiceProfileConsumerFactory(os.environ['APP_NAME'])
                         consumer.removeHost(getRn(mce.mo.getattr("Dn")))
                 except Exception, err:
-                        logging.debug('Exception: ' + str(err))
+                        logging.debug('6Exception: ' + str(err))
                 pass
                 logging.debug('Removed system')
         pass
@@ -46,13 +50,36 @@ def callback_lsServer(mce):
                         consumer.updateHost(mce.mo.getattr("Dn"), ucsmHost)
                         logging.debug("Added System to - %s" % (os.environ['APP_NAME']) )
                 except Exception, err:
-                        logging.debug('Exception: ' + str(err))
+                        logging.debug('7Exception: ' + str(err))
                 pass
         pass
         logging.debug('end of event')
 pass
 
-
+def run_listener(in_ucsm_host):
+	handle = UcsHandle()
+	login = handle.Login(in_ucsm_host.hostname, in_ucsm_host.username, in_ucsm_host.password, autoRefresh=YesOrNo.TRUE)
+	# Add an event handle to filter events based on classId = lsServer
+	try:
+		# Get the list of active event handles.
+		is_listener_running = False
+		while True:
+			#handle.GetEventHandlers()
+			# Check if there is a way to check the if the event channel is terminated. 
+			# open new channel if already opened one is closed.
+			if not is_listener_running:
+				ev_lsServer = handle.AddEventHandler(classId = "LsServer", callBack = callback_lsServer)
+				is_listener_running = True
+			pass
+			time.sleep(5)
+		pass
+	except Exception, err:
+		logging.debug('Exception:' + str(err))
+		import traceback, sys
+		logging.debug('-'*60)
+		traceback.print_exc(file=sys.stdout)
+		logging.debug('-'*60)
+pass
 
 
 
@@ -80,23 +107,7 @@ class ServiceProfileConsumer(object):
                                 ],
                         )
                 context.open()
-                handle = UcsHandle()
-                login = handle.Login(inUcsmHost.hostname, inUcsmHost.username, inUcsmHost.password, autoRefresh=YesOrNo.TRUE)
-
-                # Add an event handle to filter events based on classId = lsServer
-                try:
-                        # Get the list of active event handles.
-                        handle.GetEventHandlers()
-                        ev_lsServer = handle.AddEventHandler(classId = "LsServer", callBack = callback_lsServer)
-                        time.sleep(60000)
-                        logging.debug('after timer')
-                except Exception, err:
-                        logging.debug('Exception:' + str(err))
-                        import traceback, sys
-                        logging.debug('-'*60)
-                        traceback.print_exc(file=sys.stdout)
-                        logging.debug('-'*60)
-                pass
+                run_listener(inUcsmHost)
         pass
 
 
@@ -172,9 +183,6 @@ class ServiceProfileConsumer(object):
                         elif (line.startswith("LsbootPolicy")):
                                 logging.debug(line[line.find("{"):])
                                 createLsbootPolicy(inUcsmHost, line[line.find("{"):])
-                        elif (line.startswith("LsServerBinding")):
-                                logging.debug(line[line.find("{"):])
-                                createLsBinding(inUcsmHost, line[line.find("{"):])
                         pass
                 pass
                 logging.debug('Configuration Completed.')
@@ -217,7 +225,7 @@ class Openstack(ServiceProfileConsumer):
         pass
 
 
-        def addHost(self, ucsmHost, hostName, inMacAddr, inIpAddr, inLsServer):
+        def addHost(self, ucsmHost, hostName, inNics, inLsServer):
                 """Writes the nodes info to confi file in yaml format."""
 
                 # check if node exists, then remove
@@ -235,56 +243,70 @@ class Openstack(ServiceProfileConsumer):
 		logging.debug('powerAddr:' + powerAddr)
 		in_ls_name = inLsServer.getattr(LsServer.NAME)
 
-            	self.update_node(pnDn, in_ls_name, ucsmHost.hostname, powerAddr, in_ls_name, ucsmHost.username, ucsmHost.password, 'ucs', inMacAddr)
+		logging.debug('sp-name:' + in_ls_name)
+            	self.update_node(in_ls_name, in_ls_name, ucsmHost.hostname, powerAddr, in_ls_name, ucsmHost.username, ucsmHost.password, 'ucs', inNics)
         pass
 
-        def update_node(self, in_pn_dn, in_ls_name, in_power_ip, in_power_address, in_power_id, in_power_admin, in_power_password, in_power_type, in_mac1, in_mac2 = None):
+        def update_node(self, in_pn_dn, in_ls_name, in_power_ip, in_power_address, in_power_id, in_power_admin, in_power_password, in_power_type, in_nics):
 
-		# make sure the ip-address mapping is present.
-		site_file = open('/etc/puppet/manifests/iplist.yaml', 'r')
+		#make sure the ip-address mapping is present.
+                iplist_filename = os.path.join( os.path.abspath(os.path.dirname(__file__)), 'iplist.yaml')
+		logging.debug("iplist.yaml @ " + iplist_filename)
+		if not os.path.exists(iplist_filename):
+			logging.debug("iplist.yaml doesn't exists @ " + iplist_filename)
+		pass
+
+		site_file = open(iplist_filename, 'r')
+                
 		yaml_site_file = yaml.safe_load(site_file)
 		site_file.close()
 
 		is_node_updated = False
 		iplist_key = 'iplist'
-		nodetypes_key = 'nodetypes'
-		# iplist.yaml is not empty and has 'iplist' and 'nodetypes' defined.
+		noderoles_key = 'noderoles'
+		# iplist.yaml is not empty and has 'iplist' and 'noderoles' defined.
 		if yaml_site_file and iplist_key in yaml_site_file.keys():
 			if in_pn_dn in yaml_site_file[iplist_key].keys():
-				if yaml_site_file[iplist_key][in_pn_dn] and 'type' in yaml_site_file[iplist_key][in_pn_dn].keys() and yaml_site_file[iplist_key][in_pn_dn]['type'] == 'swift':
+				if yaml_site_file[iplist_key][in_pn_dn] and 'role' in yaml_site_file[iplist_key][in_pn_dn].keys() and yaml_site_file[iplist_key][in_pn_dn]['role'] == 'swift':
 					logging.debug('node type is swift: zone %d' %(yaml_site_file[iplist_key][in_pn_dn]['swift_zone']))
 					node = {
 						'name': yaml_site_file[iplist_key][in_pn_dn]['name'],
-						'type': yaml_site_file[iplist_key][in_pn_dn]['type'],
 						'role': yaml_site_file[iplist_key][in_pn_dn]['role'],
-						'ip': yaml_site_file[iplist_key][in_pn_dn]['ip'],
 						'power_address': in_power_address,
 						'power_id': in_power_id,
 						'power_user': in_power_admin,
 						'power_password': in_power_password,
 						'power_type': in_power_type,
 						'swift_zone': yaml_site_file[iplist_key][in_pn_dn]['swift_zone'],
-						'mac1':in_mac1,
-						'mac2':in_mac2
+						'interfaces': {}
 						}
 				else:
 					node = {
 						'name': yaml_site_file[iplist_key][in_pn_dn]['name'],
-						'type': yaml_site_file[iplist_key][in_pn_dn]['type'],
 						'role': yaml_site_file[iplist_key][in_pn_dn]['role'],
-						'ip': yaml_site_file[iplist_key][in_pn_dn]['ip'],
 						'power_address': in_power_address,
 						'power_id': in_power_id,
 						'power_user': in_power_admin,
 						'power_password': in_power_password,
 						'power_type': in_power_type,
-						'mac1':in_mac1,
-						'mac2':in_mac2
+						'interfaces': {}
 						}
 				pass
-				
-				if nodetypes_key in yaml_site_file.keys() and node['type'] not in yaml_site_file[nodetypes_key].keys():
-					logging.debug('Node type %s not supported discarding node %s' % (node['type'], node['name']))
+				for if_id in xrange(0, len(in_nics)):
+					node['interfaces']['eth' + str(if_id)] = {}
+					node['interfaces']['eth' + str(if_id)]['mac'] = in_nics[if_id]
+					node['interfaces']['eth' + str(if_id)].update(yaml_site_file[iplist_key][in_pn_dn]['interfaces']['eth' + str(if_id)])
+					node['interfaces']['eth' + str(if_id)]['ip'] = yaml_site_file[iplist_key]['interfaces']['eth' + str(if_id)]['ip']
+					node['interfaces']['eth' + str(if_id)]['dnsname'] = yaml_site_file[iplist_key]['interfaces']['eth' + str(if_id)]['dnsname']
+				pass
+				logging.debug("noderoles_key:" + noderoles_key)
+				logging.debug("yaml_site_file.keys():")
+				logging.debug(yaml_site_file.keys()) 
+				logging.debug("node['role']:" + node['role'])
+				logging.debug("yaml_site_file[noderoles_key].keys():")
+				logging.debug(yaml_site_file[noderoles_key].keys())
+				if noderoles_key in yaml_site_file.keys() and node['role'] not in yaml_site_file[noderoles_key].keys():
+					logging.debug('Node role %s not supported, discarding node %s' % (node['role'], node['name']))
 					return
 				pass
 
@@ -314,8 +336,8 @@ class Openstack(ServiceProfileConsumer):
 
 				# Update node entry in cobbler
 				logging.debug('Add cobbler node in cobbler.yaml')
-				addSystemInCobblerConfFile(node['name'], node['power_address'], node['mac1'], node['ip'])
-				addSystem(node['name'], 'precise-x86_64', node['mac1'], node['ip'])
+				addSystemInCobblerConfFile(node)
+				addSystem(node)
 				logging.debug('Updated node:%s entry in cobbler' %(node['name']))
 
 			else:
@@ -362,6 +384,7 @@ class Openstack(ServiceProfileConsumer):
 			role_mappings_file = open("/etc/puppet/data/role_mappings.yaml", 'w')
 			yaml.safe_dump(yaml_role_mappings, role_mappings_file, default_flow_style=False)
 			role_mappings_file.close()
+			#self.updateSiteFile()
 
 			# Need to remove the entry in cobbler
 	                logging.debug('Removing Host from cobbler %s' % serverName)
@@ -373,8 +396,16 @@ class Openstack(ServiceProfileConsumer):
         pass
 pass
 
+
+class Cloudstack(ServiceProfileConsumer):
+        pass
+
+class Hadoop(ServiceProfileConsumer):
+        pass
+
+
 class ServiceProfileConsumerFactory(object):
-        consumers = {'openstack':Openstack, 'cobbler':Cobbler}
+        consumers = {'openstack':Openstack, 'cobbler':Cobbler, 'cloudstack':Cloudstack, 'hadoop':Hadoop}
 
         def __new__(klass, consumer):
                 logging.debug("creating new consumer-%s"%consumer)
@@ -383,9 +414,10 @@ class ServiceProfileConsumerFactory(object):
 pass
 
 
-# Retrieve UCS service-profile inventory.
+#
 def getUcsConfig(inAppName, inUcsmHost):
         try:
+                #logging.debug('HostName'+inUcsmHost.hostname + " username:"+ inUcsmHost.username + " password:"+ inUcsmHost.password)
                 handle = UcsHandle()
                 login = handle.Login(inUcsmHost.hostname, inUcsmHost.username, inUcsmHost.password)
                 if login == False:
@@ -401,15 +433,23 @@ def getUcsConfig(inAppName, inUcsmHost):
                         addUcsServer(handle, inUcsmHost, lsServer.getattr(LsServer.DN), lsServer, inAppName)
                 pass
         except Exception, err:
-                logging.debug('Exception:' + str(err))
+                logging.debug('2Exception:' + str(err))
+                print '-'*60
+		import traceback
+                traceback.print_exc(file=sys.stdout)
+                print '-'*60
+                print('Exception:' + str(err))
+
         pass
 pass
 
 
-# Add node to openstack if entry present in iplist.yaml.
+#
 def updateHostInApp(inDn, inUcsmHost):
         try:
+                #logging.debug("In updateHostInApp"+ inUcsmHost.hostname + inUcsmHost.username + inUcsmHost.password)
                 handle = UcsHandle()
+#                login = handle.Login(ucsmHost.hostname, ucsmHost.username, ucsmHost.password)
                 login = handle.Login(inUcsmHost.hostname, inUcsmHost.username, inUcsmHost.password)
                 if login == False:
                         logging.debug('Login Failed')
@@ -425,101 +465,126 @@ def updateHostInApp(inDn, inUcsmHost):
                 pass
                 handle.Logout()
         except Exception, err:
-                logging.debug('Exception:' + str(err))
+                logging.debug('3Exception:' + str(err))
         pass
 pass
 
 
-# Retrives blade info associated with sesrvice-profile
+#
 def addUcsServer(handle, inUcsmHost, inDn, lsServer, inAppName):
         """ Get the ComputeBlades information, adds to Openstack
             If the boot order has LAN boot enabled.
         """
+        logging.debug('In addUcsServer')
+        inFilter = FilterFilter()
+        eqFilter = EqFilter()
+        eqFilter.Class = "computeBlade"
+        eqFilter.Property = "assignedToDn"
+        eqFilter.Value = inDn
+        inFilter.AddChild(eqFilter)
+        computeBlades = handle.ConfigResolveClass(ComputeBlade.ClassId(), inFilter, inHierarchical=YesOrNo.FALSE, dumpXml = False)
+        if (computeBlades.errorCode == 0):
+                # for each computeBladeMo, get the lsbootDef Info.
+                for blade in computeBlades.OutConfigs.GetChild():
+                        lsbootDef = getLsbootDef(handle, blade)
+                        for bootDef in lsbootDef.OutConfigs.GetChild():
+                                # only one LsbootDef will be present, break once we got that info.
+                                addHost(handle, inUcsmHost, bootDef, blade, lsServer, inAppName)
+                                pass
+                        pass
+                pass
+        pass
 
-	if inDn.startswith('sys/chassis-'):
-	        logging.debug('In addUcsServer')
-	        inFilter = FilterFilter()
-	        eqFilter = EqFilter()
-	        eqFilter.Class = "computeBlade"
-	        eqFilter.Property = "assignedToDn"
-	        eqFilter.Value = inDn
-	        inFilter.AddChild(eqFilter)
-        	computeBlades = handle.ConfigResolveClass(ComputeBlade.ClassId(), inFilter, inHierarchical=YesOrNo.FALSE, dumpXml = False)
-	        if (computeBlades.errorCode == 0):
-			# for each computeBladeMo, get the lsbootDef Info.
-	                for blade in computeBlades.OutConfigs.GetChild():
-        	                lsbootDef = getLsbootDef(handle, blade)
-                	        for bootDef in lsbootDef.OutConfigs.GetChild():
-                        	        # only one LsbootDef will be present, break once we got that info.
-                                	addHost(handle, inUcsmHost, bootDef, blade, lsServer, inAppName)
-	                                pass
-        	                pass
-                	pass
-	        pass
-	elif inDn.startswith('sys/rackunit-'):
-		inFilter = FilterFilter()
-		eqFilter = EqFilter()
-		eqFilter.Class = "computeRackUnit"
-		eqFilter.Property = "assignedToDn"
-		eqFilter.Value = inDn
-		inFilter.AddChild(eqFilter)
-		computeRackUnits = handle.ConfigResolveClass(ComputeRackUnit.ClassId(), inFilter, inHierarchical=YesOrNo.FALSE, dumpXml = False)
-		if (computeRackUnits.errorCode == 0):
-			# for each computeackUnitMo the lsbootDef Info.
-			for blade in computeRackUnits.OutConfigs.GetChild():
-				lsbootDef = getLsbootDef(handle, blade)
-				for bootDef in lsbootDef.OutConfigs.GetChild():
-					# only one LsbootDef will be present, break once we got that info.
-					addHost(handle, inUcsmHost, bootDef, blade, lsServer, inAppName)
-				pass
-			pass
-		pass
-	else:
-		logging.debug('Invalid Dn: %s.' % inDn)
-	pass
+        inFilter = FilterFilter()
+        eqFilter = EqFilter()
+        eqFilter.Class = "computeRackUnit"
+        eqFilter.Property = "assignedToDn"
+        eqFilter.Value = inDn
+        inFilter.AddChild(eqFilter)
+        computeRackUnits = handle.ConfigResolveClass(ComputeRackUnit.ClassId(), inFilter, inHierarchical=YesOrNo.FALSE, dumpXml = False)
+        if (computeRackUnits.errorCode == 0):
+                # for each computeackUnitMo the lsbootDef Info.
+                for blade in computeRackUnits.OutConfigs.GetChild():
+                        lsbootDef = getLsbootDef(handle, blade)
+                        for bootDef in lsbootDef.OutConfigs.GetChild():
+                                # only one LsbootDef will be present, break once we got that info.
+                                addHost(handle, inUcsmHost, bootDef, blade, lsServer, inAppName)
+                                pass
+                        pass
+                pass
+        pass
+
+
 pass
 
 
 
-# Adding node to specific integration application.
-def addHostToApp(inUcsmHost, inHostName, inIpAddr, inMacAddr, inLsServer, inAppName):
+
+
+#
+def addHostToApp(inUcsmHost, inHostName, inNics, inLsServer, inAppName):
         """ Adds system to respective Application.
         """
         logging.debug('Adding host:%s to App:%s' % (inHostName, inAppName) )
         consumer = ServiceProfileConsumerFactory(inAppName)
-        consumer.addHost(inUcsmHost, inHostName, inMacAddr, inIpAddr, inLsServer)
+        consumer.addHost(inUcsmHost, inHostName, inNics, inLsServer)
 pass
+
+def getHostNamePrefix(inLsServer, inUcsmHost):
+	specialChars = ['\'', '.', '!', '#', '$', '@', '%', '^', '&', '(', ')','*',';',':', '_']
+
+        logging.debug("hostname:" + inUcsmHost.hostname + "  afterReplace:"+ re.sub('[%s]' % ''.join(specialChars), '-', inUcsmHost.hostname))
+        
+	return  getRn(inLsServer.getattr(LsServer.OPER_SRC_TEMPL_NAME)) + "-" + re.sub('[%s]' % ''.join(specialChars), '-', inUcsmHost.hostname)
+
+pass
+
+#
+def getHostNameFromIPList(inLsServerName):
+	if inLsServerName in iplist.keys():
+		return iplist[inLsServerName]['name']
+	pass
+	return 
+pass		
+	
 
 # This function is add the system to cobbler
 def addHost(connHandle, inUcsmHost, lsbootDef, inCompServer, inLsServer, inAppName):
         logging.debug('In addHost')
         # lsbootDef contains only one LsbootLan Mo
         bootLan = getLsbootLan(connHandle, lsbootDef)
+	nics = []
         for lsbootLan in bootLan:
                 if ((lsbootLan != 0) and (isinstance(lsbootLan, ManagedObject) == True) and (lsbootLan.classId == "LsbootLan")):
                         for imagePath in lsbootLan.GetChild():
                                 if ((imagePath != 0)):
                                         vnicEther = getVnicEther(connHandle, imagePath.getattr("VnicName"), inLsServer)
                                         if (vnicEther != 0):
-						iplist_file = open('/etc/puppet/manifests/iplist.yaml', 'r')
+						logging.debug("cwd:" + os.getcwd())
+						iplist_file =  open(os.path.join( os.path.abspath(os.path.dirname(__file__)), 'iplist.yaml'))
 						yaml_iplist = yaml.safe_load(iplist_file)
 						iplist_file.close()
-						if yaml_iplist and 'iplist' in yaml_iplist.keys() and inLsServer.getattr(LsServer.PN_DN) in yaml_iplist['iplist'].keys():
+						if yaml_iplist and 'iplist' in yaml_iplist.keys() and inLsServer.getattr(LsServer.NAME) in yaml_iplist['iplist'].keys():
 							logging.debug('getiplist')
-							ipAddress = yaml_iplist['iplist'][inLsServer.getattr(LsServer.PN_DN)]['ip']
-							hostname = yaml_iplist['iplist'][inLsServer.getattr(LsServer.PN_DN)]['name']
+							if_id = {'primary':'0', 'secondary':'1'}
+							ipAddress = yaml_iplist['iplist'][inLsServer.getattr(LsServer.NAME)]['interfaces']['eth' + if_id.get(imagePath.getattr(LsbootLanImagePath.TYPE))]['ip']
+							hostname = yaml_iplist['iplist'][inLsServer.getattr(LsServer.NAME)]['interfaces']['eth' + if_id.get(imagePath.getattr(LsbootLanImagePath.TYPE))]['dnsname']
 							if ipAddress:
-                                                		addHostToApp(inUcsmHost, hostname, ipAddress, vnicEther[0].getattr(VnicEther.ADDR), inLsServer, inAppName)
+								nics.append(vnicEther[0].getattr(VnicEther.ADDR))
 							else:
-								logging.debug('skip adding node %s, no ip-address entry present' % inLsServer.getattr(LsServer.PN_DN) )
+								logging.debug('skip adding node %s, no ip-address entry present' % inLsServer.getattr(LsServer.NAME) )
 							pass
 						else:
-							logging.debug('skip adding node %s, no ip-address entry present' % inLsServer.getattr(LsServer.PN_DN) )
+							logging.debug('skip adding node %s, no ip-address entry present' % inLsServer.getattr(LsServer.NAME) )
 						pass
                                         pass
                                 pass
                         pass
                 pass
         pass
+	if len(nics) > 0:
+		logging.debug('No.of NICs configured in boot-order: %d' % (len(nics)))
+		addHostToApp(inUcsmHost, hostname, nics, inLsServer, inAppName)
+	pass
 pass
 

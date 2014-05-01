@@ -1,10 +1,80 @@
 iplist:
+  os-control1:
+    name: controller-node1
+    interfaces:
+      eth0: 
+        ip: 10.104.252.141
+        dnsname: controller-node1-1
+      eth1: 
+        ip: 10.104.252.151
+        dnsname: controller-node1-2
+    role: compressed_ha_cephmon
+  os-control2:
+    name: controller-node2
+    interfaces:
+      eth0: 
+        ip: 10.104.252.142
+        dnsname: controller-node2-1
+      eth1: 
+        ip: 10.104.252.152
+        dnsname: controller-node2-2
+    ip: 10.104.252.142
+    role: compressed_ha_cephmon
+  os-control3:
+    name: controller-node3
+    interfaces:
+      eth0: 
+        ip: 10.104.252.143
+        dnsname: controller-node3-1
+      eth1: 
+        ip: 10.104.252.153
+        dnsname: controller-node3-2
+    role: compressed_ha_cephmon
+  os-compute1:
+    name: compute-node1
+    interfaces:
+      eth0: 
+        ip: 10.104.252.144
+        dnsname: compute-node1-1
+    role: compute
+  os-compute2:
+    name: compute-node2
+    interfaces:
+      eth0: 
+        ip: 10.104.252.145
+        dnsname: compute-node2-1
+    role: compute
+  os-compute3:
+    name: compute-node3
+    interfaces:
+      eth0: 
+        ip: 10.104.252.146
+        dnsname: compute-node3-1
+    role: compute
+  os-storage1:
+    name: storage-node1
+    interfaces:
+      eth0: 
+        ip: 10.104.252.147
+        dnsname: storage-node1
+    role: cephosd
+  os-storage2:
+    name: storage-node2
+    interfaces:
+      eth0: 
+        ip: 10.104.252.148
+        dnsname: storage-node2-1
+    role: cephosd
+  os-storage3:
+    name: storage-node3
+    interfaces:
+      eth0: 
+        ip: 10.104.252.149
+        dnsname: storage-node3-1
+    role: cephosd
 
-nodetypes:
-  all_in_one:
+noderoles:
+  build:
+  compressed_ha_cephmon:
   compute:
-  control:
-
-profilemap:
-  all_in_one: precise
-  compute: default
+  cephosd:
