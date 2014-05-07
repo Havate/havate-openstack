@@ -74,5 +74,23 @@ iplist:
     role: cephosd
 
 noderoles:
+  aio:
+  build:
+  compute:
+  controller:
+  network_controller:
+  ha_controller:
+  load_balancer:
+  swift_proxy:
+  swift_storage:
+
+profilemap:
   aio: precise
+  build: precise
   compute: default
+  controller: default
+  network_controller: default
+  ha_controller: default
+  load_balancer: default
+  swift_proxy: default
+  swift_storage: default
