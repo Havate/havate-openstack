@@ -3,7 +3,7 @@ import sys
 import xmlrpclib
 import logging
 import yaml
-
+import collections
 
 cobbler_server='127.0.0.1'
 cobbler_user = 'cobbler'
@@ -20,6 +20,22 @@ def isProfileExists(profile_name):
                 return True
         pass
         return False
+pass
+def update_yaml_file(yaml_filename, node, cobbler_node):
+	yaml_file = open(yaml_filename, 'r')
+	yaml_cobbler_nodes = yaml.safe_load(yaml_file)
+	yaml_file.close()
+
+	if not yaml_cobbler_nodes:
+		yaml_cobbler_nodes = {}
+	pass
+	yaml_cobbler_nodes[node['name']] = {}
+	yaml_cobbler_nodes[node['name']] = cobbler_node
+
+	# Write the changes to role_mappings file
+	yaml_file = open(yaml_filename, 'w')
+	yaml.safe_dump(yaml_cobbler_nodes, yaml_file, default_flow_style=False)
+	yaml_file.close()
 pass
 
 def addSystemInCobblerConfFile(node):
@@ -40,21 +56,12 @@ def addSystemInCobblerConfFile(node):
 			'interfaces' : interfaces 
 			}
 
-	cobbler_nodes_file_name = "/etc/puppet/data/cobbler/cobbler.yaml"
-	logging.debug('cobbler_nodes_file_name')
-	cobbler_nodes_file = open(cobbler_nodes_file_name, 'r')
-	yaml_cobbler_nodes = yaml.safe_load(cobbler_nodes_file)
-	cobbler_nodes_file.close()
-
-	if yaml_cobbler_nodes and yaml_cobbler_nodes.keys():
-		yaml_cobbler_nodes[node['name']] = cobbler_node
-		logging.debug('Node:%s added/updated in cobbler.yaml' % (node['name']))
-	pass
-
-	# Write the changes to role_mappings file
-	cobbler_nodes_file = open(cobbler_nodes_file_name, 'w')
-	yaml.safe_dump(yaml_cobbler_nodes, cobbler_nodes_file, default_flow_style=False)
-	cobbler_nodes_file.close()
+	# Update cobbler.yaml
+	cobbler_nodes_filename = "/etc/puppet/data/cobbler/cobbler.yaml"
+	update_yaml_file(cobbler_nodes_filename, node, cobbler_node)
+	# Update user.common.yaml
+	user_common_cobbler_filename = "/etc/puppet/data/hiera_data/user.common.yaml"
+	update_yaml_file(user_common_cobbler_filename, node, cobbler_node)
 pass
 
 
