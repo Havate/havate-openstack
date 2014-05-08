@@ -260,6 +260,7 @@ class ScenarioDiscoveryView(JSONResponseMixin, AjaxResponseMixin, View):
                 text_result = ''
                 cpu_type = ''
                 adaptor_type = ''
+                node_name = ''
                 if len(node_dict['ProcessorUnits']) >0:
                     for cpu, cpu_dict in node_dict['ProcessorUnits'].iteritems():
                         cpu_type = cpu_dict['model']
@@ -289,10 +290,12 @@ class ScenarioDiscoveryView(JSONResponseMixin, AjaxResponseMixin, View):
                 text_result += 'Adaptors: ' + node_dict['numOfAdaptors'] + '\n'
                 text_result += 'Adaptor Type: ' + adaptor_type + '\n'
 
-                json_list.append([html_result, text_result, chassis.split('-')[1], node.split('-')[1], ], )
+                json_list.append([ chassis.split('-')[1], node.split('-')[1], html_result, text_result, ], )
 
         role_list = []
         for role, role_dict in processed_scenario_content['roles'].iteritems():
             role_list.append(role)
 
+        json_list.sort()
+    
         return self.render_json_response({'nodes':json_list, 'roles': role_list})

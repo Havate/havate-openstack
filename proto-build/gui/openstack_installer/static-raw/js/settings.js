@@ -203,8 +203,8 @@
 
             $('#clear-scenario-radio-button').click(function(e){
                 e.preventDefault();
-                $('#scenario-list-table input[type=radio]:checked').prop('checked', false);
-                $('#scenario-list-table .hostname-ip-container').addClass('hidden');
+                $('#scenario-list-table').hide();
+                $("#scenario-select").val($("#scenario-select option:first").val());
             });
         })();
 
@@ -214,8 +214,10 @@
                 var $this = $(this);
                 $this.prop('disabled', true);
                 $('body').addClass('waiting');
+                $('#scenario-list-table').hide();
                 //$this.html('Discovering');
                 var scenario_name = $(this).val();
+
                 $.ajax({
                     type: 'POST',
                     url: '/scenario_discovery/',
@@ -233,6 +235,7 @@
                         //alert('no blades discovered - (check ip address/credentials/server discovery is completed on UCSM)');
                     },
                     success: function(data, status, xhr){
+                        $('#scenario-list-table').show();
                         $this.prop('disabled', false);
                         $('body').removeClass('waiting');
                         //$this.html('Run Discovery');
@@ -258,10 +261,10 @@
                         $('#scenario_id_node_number').val(data['nodes'].length);
 
                         for (var x in data['nodes']){
-                            var html_result = data['nodes'][x][0];
-                            var text_result = data['nodes'][x][1];
-                            var chassis = data['nodes'][x][2];
-                            var blade = data['nodes'][x][3];
+                            var html_result = data['nodes'][x][2];
+                            var text_result = data['nodes'][x][3];
+                            var chassis = data['nodes'][x][0];
+                            var blade = data['nodes'][x][1];
                             var $temp_row = $('<tr></tr>').addClass('node'+counter);
                             var temp_blade=html_result.split("<br>");
                             var temp_coll_link = 'node-col-'+counter;
@@ -306,8 +309,17 @@
 
                             $temp_row.append($temp_td);
                             for (var x in data['roles']){
+                                if (temp_blade[1].toLowerCase().indexOf("service") >= 0)
+                                {
+                                $temp_input = $('<input>').attr('type', 'radio').addClass(data['roles'][x] + '-input').attr('name', 'role-'+counter).data('role', data['roles'][x]).val(data['roles'][x]).attr('disabled');
+                                $temp_td = $('<td align="center"></td>').append($temp_input);
+                                }
+                                else
+                                {
                                 $temp_input = $('<input>').attr('type', 'radio').addClass(data['roles'][x] + '-input').attr('name', 'role-'+counter).data('role', data['roles'][x]).val(data['roles'][x]);
                                 $temp_td = $('<td align="center"></td>').append($temp_input);
+                                }
+
                                 $temp_row.append($temp_td);
                             }
                             $tbody.append($temp_row);
