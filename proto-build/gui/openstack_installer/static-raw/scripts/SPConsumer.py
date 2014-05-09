@@ -183,6 +183,9 @@ class ServiceProfileConsumer(object):
                         elif (line.startswith("LsbootPolicy")):
                                 logging.debug(line[line.find("{"):])
                                 createLsbootPolicy(inUcsmHost, line[line.find("{"):])
+                        elif (line.startswith("LsServerBinding")):
+                                logging.debug(line[line.find("{"):])
+                                createLsBinding(inUcsmHost, line[line.find("{"):])
                         pass
                 pass
                 logging.debug('Configuration Completed.')
