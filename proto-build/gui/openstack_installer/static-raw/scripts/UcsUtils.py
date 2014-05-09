@@ -647,3 +647,31 @@ def createLsbootPolicy(inUcsmHost, lsbootPolicyStr):
         	addObjectToUcs(inUcsmHost, lsbootPolicyDn, LsbootPolicy.ClassId(), LsbootVirtualMedia.ClassId(), lsbootVirtualMediaList, lsbootVirtualMediaDn)
 	pass
 pass
+
+
+def start_kvm_session(ucsm, service_profile=None, blade=None, rack_unit=None):
+	""" Starts a KVM session to the given server or service_profile. 
+	    ucsm - details of ucsm hostname,username and password.
+	    service_profile - the service-profile dn
+	    blade - the server dn
+	    rack_unit - The rack-unit dn.
+	    Supported only service_profile based launching for now."""
+        try:
+		ucs_handle = UcsHandle()
+		login = ucs_handle.Login(ucsm['hostname'], ucsm['username'], ucsm['password'])
+		if (login == False):
+			logging.debug('[Error]: Login Failed')
+			sys.exit(0)
+		ls_server = ucs_handle.GetManagedObject(None, LsServer.ClassId(), {LsServer.DN:service_profile}, inHierarchical=YesOrNo.FALSE, dumpXml=False)
+		if ls_server != 0:
+			logging.debug('Launching kvm console for %s' % ls_server[0].getattr('Dn'))
+			ucs_handle.StartKvmSession(serviceProfile=ls_server[0], frameTitle=ucsm['hostname'] + '_' + ls_server[0].getattr('Dn'))
+		pass
+		ucs_handle.Logout()
+	except Exception, err:
+		logging.debug("Exception: %s" % str(err))
+		import traceback, sys
+		logging.debug('-'*60)
+		traceback.print_exc(file=sys.stdout)
+		logging.debug('-'*60)
+pass

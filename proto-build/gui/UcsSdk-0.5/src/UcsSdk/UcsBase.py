@@ -571,6 +571,22 @@ class UcsUtils:
 					return None
 				else:
 					return path
+		elif platform.system() == "Darwin":
+			path = os.environ.get('JAVA_HOME')
+			if path == None:
+				WriteUcsWarning("Please make sure JAVA is installed and variable JAVA_HOME is set properly.")
+				return None
+			else:
+				path = os.path.join(path, 'bin')
+				path = os.path.join(path, 'javaws')
+				if not os.path.exists(path):
+					WriteUcsWarning("javaws is not installed on system.")
+					return None
+				else:
+					return path
+				pass
+			pass
+		pass
 				
 	@staticmethod
 	def DownloadFile(hUcs, source, destination):
