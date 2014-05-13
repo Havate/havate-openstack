@@ -90,12 +90,19 @@ class SubmitSettingsView(FormView):
         if self.request.POST.get('summary-table-settings', 0) == 'scenario':
             try:
                 iplist_file_path = os.path.join(settings.IPLIST_DESTINATION, 'iplist.yaml')
-                iplist_content = ""
+
+
+		iplist_content = ""
+                iplist_scenario ={}
+                selected_scenario = self.request.POST.get('selected-scenario',None)
                 processed_iplist_content = {}
+		processed_iplist_text = {}
                 if os.path.isfile(iplist_file_path):
                     with open(iplist_file_path, 'r') as content_file:
                         iplist_content = content_file.read()
-                    processed_iplist_content = yaml.load(iplist_content)
+
+		    if iplist_content:
+                   	processed_iplist_content = yaml.load(iplist_content)
                 nodes = int(self.request.POST.get('scenario_node_number', 0))
                 iplist = {}
                 for x in range(nodes):
@@ -103,10 +110,18 @@ class SubmitSettingsView(FormView):
                     ip = self.request.POST.get('scenario_ip__'+str(x), "")
                     role = self.request.POST.get('role-'+str(x), "")
 		    pndn = 'sys/chassis-'+self.request.POST.get('chassis_number__'+str(x), 0)+'/blade-'+self.request.POST.get('blade_number__'+str(x), 0)
+		    print pndn
                     if hostname and ip and role:
-                        iplist[pndn] = {'name': hostname, 'ip':ip, 'role':role, 'type':role}
-                processed_iplist_content['iplist'] = iplist
+
+			iplist_scenario['name:'+hostname] = {'interfaces':{'eth0':{'ip':ip,'dnsname':hostname, 'type':hostname}},'role':role}
+
+
+
+               # traverse_tree(processed_iplist_content)
+                processed_iplist_text[selected_scenario] = iplist_scenario
+                processed_iplist_content['iplist'] = processed_iplist_text
                 traverse_tree(processed_iplist_content)
+		
                 with open(iplist_file_path, 'w') as content_file:
                     content_file.write( yaml.safe_dump(processed_iplist_content, default_flow_style=False))
 
@@ -181,9 +196,9 @@ class NodeDiscoveryView(JSONResponseMixin, AjaxResponseMixin, View):
         content = ""
         with open(file_path, 'r') as content_file:
             content = content_file.read()
-#         print content
+
         processed_content = yaml.load(content)
-#         print processed_content
+
         json_list = []
         for chassis, chassis_dict in processed_content.iteritems():
             for node, node_dict in chassis_dict.iteritems():
@@ -243,9 +258,9 @@ class ScenarioDiscoveryView(JSONResponseMixin, AjaxResponseMixin, View):
         content = ""
         with open(file_path, 'r') as content_file:
             content = content_file.read()
-        #print content
+
         processed_content = yaml.load(content)
-        #print processed_content
+
 
         scenario_path = os.path.join(settings.PROJECT_PATH, 'static-raw', 'scenarios', scenario_name+'.yaml')
         scenario_content = ""
@@ -297,5 +312,5 @@ class ScenarioDiscoveryView(JSONResponseMixin, AjaxResponseMixin, View):
             role_list.append(role)
 
         json_list.sort()
-    
+
         return self.render_json_response({'nodes':json_list, 'roles': role_list})

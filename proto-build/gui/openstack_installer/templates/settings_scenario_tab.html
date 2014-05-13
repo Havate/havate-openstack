@@ -9,7 +9,7 @@
 					</div>
 					<div class="panel-body">
 						<div class="col-sm-8">
-						<select id="scenario-select" class="form-control input-sm" >
+						<select id="scenario-select" class="form-control input-sm" name="selected-scenario">
 				        	<option>-----------</option>
 				        	{% for scenario in scenario_list %}
 				        	<option data-name="{{scenario}}" val="{{scenario}}">{{scenario}}</option>
@@ -23,6 +23,12 @@
 				</div>
 			</div>
 		</div>
+    <div class="row">
+        <div class="col-sm-12 col-md-10 col-md-offset-1">
+            <input class="btn btn-default btnWizardPrev pull-left" id="btnWizardPrev" value="Back" type="button">
+            <input class="btn btn-primary btnWizardNext pull-right" id="btnWizardNext" value="Next" type="button"><br><br><br>
+        </div>
+    </div>
 
 
 	<div class="row">
@@ -36,10 +42,4 @@
 		</div>
 	</div>
 
-	<div class="row">
-	  	<div class="col-sm-12 col-md-10 col-md-offset-1">
-			<input class="btn btn-default btnWizardPrev pull-left" id="btnWizardPrev" value="Back" type="button">
-			<input class="btn btn-primary btnWizardNext pull-right" id="btnWizardNext" value="Next" type="button">
-		</div>
-	</div>
 
