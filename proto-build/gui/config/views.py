@@ -113,7 +113,7 @@ class SubmitSettingsView(FormView):
 		    print pndn
                     if hostname and ip and role:
 
-			iplist_scenario['name:'+hostname] = {'interfaces':{'eth0':{'ip':ip,'dnsname':hostname, 'type':hostname}},'role':role}
+			iplist_scenario['name:'+hostname] = {'interfaces':{'eth0':{'ip':ip,'dnsname':hostname}},'role':role}
 
 
 
