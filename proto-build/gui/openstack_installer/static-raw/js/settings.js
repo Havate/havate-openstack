@@ -268,7 +268,7 @@
                             var $temp_row = $('<tr></tr>').addClass('node'+counter);
                             var temp_blade=html_result.split("<br>");
                             var temp_coll_link = 'node-col-'+counter;
-                            var $temp_td = $('<td style="width:40%;"></td>').html('<a data-toggle="collapse" style="cursor: pointer;" data-target="#'+temp_coll_link+'" >' +temp_blade[0] +'</a>');
+                            var $temp_td = $('<td style="width:40%;"></td>').html('<a class="coll_link" data-toggle="collapse" style="cursor: pointer;" data-target="#'+temp_coll_link+'" >' +temp_blade[0] +'</a>');
                             if (temp_blade[1].toLowerCase().indexOf("service") >= 0)
                             {
 								$temp_row.addClass('spa');
@@ -329,6 +329,7 @@
 //                            		$('#'+'node-col-'+counter).collapse('show');
  								$(this).parents('tr').find('.collapse').collapse('show');
                                 $(this).parents('tr').find('.hostname-ip-container').removeClass('hidden');
+                                $('.panel-collapse').removeClass("in");
                             });
                             counter = counter + 1;
                         }
