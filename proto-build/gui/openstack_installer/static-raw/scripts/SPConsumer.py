@@ -299,8 +299,8 @@ class Openstack(ServiceProfileConsumer):
 					node['interfaces']['eth' + str(if_id)] = {}
 					node['interfaces']['eth' + str(if_id)]['mac'] = in_nics[if_id]
 					node['interfaces']['eth' + str(if_id)].update(yaml_site_file[iplist_key][in_pn_dn]['interfaces']['eth' + str(if_id)])
-					node['interfaces']['eth' + str(if_id)]['ip'] = yaml_site_file[iplist_key]['interfaces']['eth' + str(if_id)]['ip']
-					node['interfaces']['eth' + str(if_id)]['dnsname'] = yaml_site_file[iplist_key]['interfaces']['eth' + str(if_id)]['dnsname']
+					node['interfaces']['eth' + str(if_id)]['ip'] = yaml_site_file[iplist_key][in_pn_dn]['interfaces']['eth' + str(if_id)]['ip']
+					node['interfaces']['eth' + str(if_id)]['dnsname'] = yaml_site_file[iplist_key][in_pn_dn]['interfaces']['eth' + str(if_id)]['dnsname']
 				pass
 				logging.debug("noderoles_key:" + noderoles_key)
 				logging.debug("yaml_site_file.keys():")
