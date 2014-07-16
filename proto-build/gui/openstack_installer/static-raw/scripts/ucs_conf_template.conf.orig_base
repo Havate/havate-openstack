@@ -80,21 +80,7 @@ LsServerBinding {'Org':'org-root', 'Name':'allinone4', 'SrcTemplName':'aio-node'
 
 # create server-ports.
 # server-prots config goes here.
-ServerPort {'PortId':'1', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'1', 'SlotId':'1', 'SwitchId':"B"}
-ServerPort {'PortId':'2', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'2', 'SlotId':'1', 'SwitchId':"B"}
-ServerPort {'PortId':'3', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'3', 'SlotId':'1', 'SwitchId':"B"}
-ServerPort {'PortId':'4', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'4', 'SlotId':'1', 'SwitchId':"B"}
-ServerPort {'PortId':'5', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'5', 'SlotId':'1', 'SwitchId':"B"}
-ServerPort {'PortId':'6', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'6', 'SlotId':'1', 'SwitchId':"B"}
-ServerPort {'PortId':'7', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'7', 'SlotId':'1', 'SwitchId':"B"}
-ServerPort {'PortId':'8', 'SlotId':'1', 'SwitchId':"A"}
-ServerPort {'PortId':'8', 'SlotId':'1', 'SwitchId':"B"}
+#ServerPort {'PortId':'1', 'SlotId':'1', 'SwitchId':"A"}
+#ServerPort {'PortId':'1', 'SlotId':'1', 'SwitchId':"B"}
 
 
