@@ -25,6 +25,7 @@ key.inc
 proto-build/puppet_openstack_builder
 source
 mini.iso
+ubuntu-14.04-server-amd64.iso
 ubuntu-12.04.4-server-amd64.iso
 ubuntu-12.04.3-server-amd64.iso
 ubuntu-12.04.4-desktop-amd64.iso

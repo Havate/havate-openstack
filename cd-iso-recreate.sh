@@ -35,12 +35,12 @@ EXTRASDIR="$BASEDIR/build"
 SEEDFILE="ubuntu-server.seed"
 
 # Ubuntu ISO image
-RELEASE="precise"
-CDISO="ubuntu-12.04.4-server-amd64.iso"
+RELEASE="trusty"
+CDISO="ubuntu-14.04-server-amd64.iso"
 CDIMAGE=$BASEDIR/$CDISO
 
 # OpenStack install branch
-BRANCH="havana"
+BRANCH="icehouse"
 
 # Where the ubuntu iso image will be mounted
 CDSOURCEDIR="$BASEDIR/cdsource"
@@ -85,19 +85,13 @@ fi
 
 # sed -e 's/us.*com/mirror.ctocllab.cisco.com/' -i /etc/apt/sources.list
 # Install app
-grep ubuntu-cloud /etc/apt/sources.list > /dev/null
-if [ ! $? ]; then
-echo "deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/havana main" >> /etc/apt/sources.list
-fi
-apt-get install ubuntu-cloud-keyring -y
 # Add Cisco repo
-cat > /etc/apt/sources.list.d/cisco-openstack-mirror_havana.list<<EOF
+cat > /etc/apt/sources.list.d/cisco-openstack-mirror_icehouse.list<<EOF
 # cisco-openstack-mirror_havana
-deb http://openstack-repo.cisco.com/openstack/cisco havana-proposed main
-deb-src http://openstack-repo.cisco.com/openstack/cisco havana-proposed main
+deb http://openstack-repo.cisco.com/openstack/cisco icehouse main
+deb-src http://openstack-repo.cisco.com/openstack/cisco icehouse main
 
 # repo to download galera & mysql-server-wsrep packages
-deb http://openstack-repo.cisco.com/openstack/cisco_supplemental havana-proposed main
 EOF
 
 echo "-----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -152,7 +146,7 @@ if [ ! -f $CDIMAGE ]; then
 fi
 
 if [ ! -f $BASEDIR/proto-build/mini.iso ]; then
-    wget -O $BASEDIR/proto-build/mini.iso http://archive.ubuntu.com/ubuntu/dists/precise-updates/main/installer-amd64/current/images/netboot/mini.iso
+    wget -O $BASEDIR/proto-build/mini.iso http://archive.ubuntu.com/ubuntu/dists/trusty-updates/main/installer-amd64/current/images/netboot/mini.iso
 fi
 
 # we may as well get a small systems image to run a test script with (assuming
@@ -291,24 +285,24 @@ mkdir -p $BASEDIR/FinalCD/mirror/conf
 cat > $BASEDIR/FinalCD/mirror/conf/distributions<<EOF
 Origin: Ubuntu
 Label: Ubuntu
-Codename: precise
+Codename: trusty
 Suite: stable
 Version: 12.04
 Architectures: amd64
 Components: extras
 DebOverride: override
 Description: OpenStack components mirror
-Pull: precise
+Pull: trusty
 SignWith: yes
 EOF
-#DebOverride: override.precise.extra.main
+#DebOverride: override.trusty.extra.main
 
 rm -rf $BASEDIR/FinalCD/{dists,pool}
 mkdir -p $BASEDIR/FinalCD/conf
 cat > $BASEDIR/FinalCD/conf/distributions<<EOF
 Origin: Ubuntu
 Label: Ubuntu
-Codename: precise
+Codename: trusty
 Suite: stable
 Version: 12.04
 Architectures: amd64 i386
@@ -317,21 +311,21 @@ DebOverride: override
 UDebComponents: main
 Description: GUI-Installer cd mirror
 SignWith: yes
-Pull: precise
+Pull: trusty
 EOF
 
 echo "Grab overrides"
 # add override parameters to distributions files (above)
-if [ ! -f $BASEDIR/indices/override.precise.extra.main ]; then
+if [ ! -f $BASEDIR/indices/override.trusty.extra.main ]; then
 	mkdir -p $BASEDIR/indices
-        for i in override.precise.extra.main override.precise.main override.precise.main.debian-installer; do
+        for i in override.trusty.extra.main override.trusty.main override.trusty.main.debian-installer; do
                 cd $BASEDIR/indices
                 wget http://archive.ubuntu.com/ubuntu/indices/$i
         done
 	# Create a 'fixed' version of the extras.main override package.
 	# Idea/Perl by Ferry Hendrikx, 2006
-	cat $BASEDIR/indices/override.precise.extra.main | egrep -v ' Task ' > $BASEDIR/indices/override
-	gunzip -c $CDSOURCEDIR/dists/precise/main/binary-amd64/Packages.gz | perl -e 'while (<>) { chomp; if(/^Package\:\s*(.+)$/) { $pkg=$1; } elsif(/^Task\:\s(.+)$/) { print "$pkg\tTask\t$1\n"; } }' >> $BASEDIR/indices/override
+	cat $BASEDIR/indices/override.trusty.extra.main | egrep -v ' Task ' > $BASEDIR/indices/override
+	gunzip -c $CDSOURCEDIR/dists/trusty/main/binary-amd64/Packages.gz | perl -e 'while (<>) { chomp; if(/^Package\:\s*(.+)$/) { $pkg=$1; } elsif(/^Task\:\s(.+)$/) { print "$pkg\tTask\t$1\n"; } }' >> $BASEDIR/indices/override
 
 	#cat $BASEDIR/indices/*main > $BASEDIR/indices/override
 
@@ -351,15 +345,15 @@ mysql-server-wsrep Section  database
 EOF
 
 #rebuild the archive
-reprepro -V -b $BASEDIR/FinalCD -C main includedeb precise `find $BASEDIR/cdsource -name '*\.deb'`
-reprepro -V -b $BASEDIR/FinalCD -C main includeudeb precise `find $BASEDIR/cdsource -name '*udeb'`
+reprepro -V -b $BASEDIR/FinalCD -C main includedeb trusty `find $BASEDIR/cdsource -name '*\.deb'`
+reprepro -V -b $BASEDIR/FinalCD -C main includeudeb trusty `find $BASEDIR/cdsource -name '*udeb'`
 
 ################## Remove packages that we no longer require
 
 echo "Create symlinks to stable/unstable"
 cd $BASEDIR/FinalCD/dists
-ln -s precise stable
-ln -s precise unstable
+ln -s trusty stable
+ln -s trusty unstable
 
 ### PackageList is a dpkg -l from our 'build' server.
 ##if [ ! -f $PACKAGELIST ]; then
@@ -433,10 +427,10 @@ dpkg-buildpackage -rfakeroot -m"$MYGPGKEY" -k"$MYGPGKEY" >/dev/null
 echo "cleaning up keyring in ${PWD}"
 ls -l ../*deb
 
-reprepro -V -b $BASEDIR/FinalCD -T deb -C main remove precise ubuntu-keyring
-reprepro -V -b $BASEDIR/FinalCD -T udeb -C main remove precise ubuntu-keyring-udeb
-reprepro -V -b $BASEDIR/FinalCD -C main includedeb precise ../ubuntu-keyring*.deb
-reprepro -V -b $BASEDIR/FinalCD -C main includeudeb precise ../ubuntu-keyring*.udeb
+reprepro -V -b $BASEDIR/FinalCD -T deb -C main remove trusty ubuntu-keyring
+reprepro -V -b $BASEDIR/FinalCD -T udeb -C main remove trusty ubuntu-keyring-udeb
+reprepro -V -b $BASEDIR/FinalCD -C main includedeb trusty ../ubuntu-keyring*.deb
+reprepro -V -b $BASEDIR/FinalCD -C main includeudeb trusty ../ubuntu-keyring*.udeb
 
 if [ $? -gt 0 ]; then
         echo "Cannot copy the modified ubuntu-keyring over to the pool/main folder. Exiting."
@@ -490,10 +484,10 @@ if [ ! -z $EXTRASDIR ]; then
                 cd ..
                 #rm -f $BASEDIR/FinalCD/pool/main/u/ubuntu-meta/ubuntu-desktop*.deb
                 
-		reprepro -V -b $BASEDIR/FinalCD -C main remove precise ubuntu-desktop
-		reprepro -V -b $BASEDIR/FinalCD -T udeb -C main remove precise ubuntu-desktop-udeb
-		reprepro -V -b $BASEDIR/FinalCD -C main includedeb precise ./ubuntu-desktop*.deb
-		reprepro -V -b $BASEDIR/FinalCD -C main includeudeb precise ./ubuntu-desktop*.udeb
+		reprepro -V -b $BASEDIR/FinalCD -C main remove trusty ubuntu-desktop
+		reprepro -V -b $BASEDIR/FinalCD -T udeb -C main remove trusty ubuntu-desktop-udeb
+		reprepro -V -b $BASEDIR/FinalCD -C main includedeb trusty ./ubuntu-desktop*.deb
+		reprepro -V -b $BASEDIR/FinalCD -C main includeudeb trusty ./ubuntu-desktop*.udeb
 
                 cp $EXTRASDIR/preseed/$SEEDFILE $BASEDIR/FinalCD/preseed/$SEEDFILE
 
@@ -545,7 +539,7 @@ if [ ! -z "$USPLASH" ]; then
 ## REPREPRO
 # need to make reprepro command
         rm -f $BASEDIR/FinalCD/pool/main/u/usplash/usplash*deb
-	reprepro -V -b $BASEDIR/FinalCD -C main includedeb precise ./usplash*.deb
+	reprepro -V -b $BASEDIR/FinalCD -C main includedeb trusty ./usplash*.deb
         ##-mv usplash*.deb $BASEDIR/FinalCD/pool/main/u/usplash/
 fi
 
@@ -562,7 +556,7 @@ if [ ! -d "$BASEDIR/apt" ] ; then
 fi
 
 cd $BASEDIR/apt
-reprepro -V -b $BASEDIR/FinalCD -C main includedeb precise ./*.deb
+reprepro -V -b $BASEDIR/FinalCD -C main includedeb trusty ./*.deb
 
 cd $BASEDIR/FinalCD
 echo -n "Updating md5 checksums.. "
