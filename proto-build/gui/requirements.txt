@@ -1,7 +1,7 @@
 Django==1.5.5
 Jinja2==2.7.1
 MarkupSafe==0.18
-PyYAML==3.10
+PyYAML==4.2b1
 South==0.8.2
 django-braces==1.2.2
 django-crispy-forms==1.4.0
